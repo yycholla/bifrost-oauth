@@ -15,11 +15,23 @@ devenv build outputs.default
 The plugin and Bifrost must use the same Go version, Bifrost core revision and module identity, build flags, architecture, and libc. The devenv pins both to Bifrost commit `c0909f9`, builds the plugin against that input's local core source, and includes the dynamically linked `bifrost-http` binary.
 
 The full Bifrost dashboard and backend are included. Build the plugin and start
-the loopback-only instance with:
+the loopback-only development instance on port `18080` with:
 
 ```bash
 devenv up
 ```
+
+Inside `devenv shell`, the repo-provided `claude-bifrost` shadows the installed
+NixOS command and targets that local instance. Run the real Claude Code
+compatibility check from a second shell:
+
+```bash
+devenv shell
+check-claude-bifrost
+```
+
+The check uses the local plugin build and expects an exact
+`CLAUDE_BIFROST_OK` response through `gpt-5.6-sol`.
 
 Run it as your user so the plugin can read `~/.codex/auth.json`. `CODEX_HOME`
 is honored when set.
