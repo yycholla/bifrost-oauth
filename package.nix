@@ -50,7 +50,7 @@ let
 
   plugin = buildGoModule {
     pname = "bifrost-codex-oauth-plugin";
-    version = "0.1.1";
+    version = "0.1.2";
     src = pluginSource;
 
     vendorHash = "sha256-dRvYRt6Dq0VNsZtzWITx9y2GAzfx8v3E8u5jeIN2oz8=";
