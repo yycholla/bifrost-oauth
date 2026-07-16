@@ -36,13 +36,12 @@ in
     export ANTHROPIC_BASE_URL=http://127.0.0.1:18080/anthropic
     export ANTHROPIC_AUTH_TOKEN=local-only
     export ANTHROPIC_DEFAULT_HAIKU_MODEL=codex-subscription/gpt-5.6-luna
-    export ANTHROPIC_DEFAULT_SONNET_MODEL=codex-subscription/gpt-5.6-terra
-    export ANTHROPIC_DEFAULT_OPUS_MODEL=codex-subscription/gpt-5.6-sol
+    export ANTHROPIC_DEFAULT_SONNET_MODEL=codex-subscription/gpt-5.6-sol
     exec claude "$@"
   '';
 
   scripts.check-claude-bifrost.exec = ''
-    response="$(claude-bifrost --model opus -p 'Reply exactly CLAUDE_BIFROST_OK')"
+    response="$(claude-bifrost --model sonnet -p 'Reply exactly CLAUDE_BIFROST_OK')"
     if [[ "$response" != *CLAUDE_BIFROST_OK* ]]; then
       printf 'unexpected Claude response:\n%s\n' "$response" >&2
       exit 1

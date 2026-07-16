@@ -76,11 +76,15 @@ Point Claude Code at the Anthropic integration:
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8080/anthropic",
     "ANTHROPIC_AUTH_TOKEN": "local-only",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "codex-subscription/gpt-5.4-mini",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "codex-subscription/gpt-5.4"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "codex-subscription/gpt-5.6-luna",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "codex-subscription/gpt-5.6-sol"
   }
 }
 ```
+
+This leaves Claude Code's Opus slot unchanged. Other subscription models,
+including `gpt-5.6-terra`, remain directly selectable with
+`/model codex-subscription/<model>`.
 
 The plugin refreshes rotating OAuth credentials and atomically replaces the Codex auth file with mode `0600`. If Codex rotates the token concurrently, the plugin rereads and uses Codex's newly persisted credentials.
 
