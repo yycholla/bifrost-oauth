@@ -50,7 +50,7 @@ let
 
   plugin = buildGoModule {
     pname = "bifrost-codex-oauth-plugin";
-    version = "0.1.2";
+    version = "0.1.3";
     src = pluginSource;
 
     vendorHash = "sha256-dRvYRt6Dq0VNsZtzWITx9y2GAzfx8v3E8u5jeIN2oz8=";
@@ -84,6 +84,12 @@ let
     };
   };
 
+  reconciler = pkgs.writeShellApplication {
+    name = "bifrost-oauth-reconcile-plugin";
+    runtimeInputs = [ pkgs.sqlite ];
+    text = builtins.readFile ./nix/reconcile-plugin.sh;
+  };
+
   settings = import ./nix/settings.nix {
     pluginPath = "./plugins/codex-oauth.so";
   };
@@ -95,9 +101,9 @@ let
     text = ''
       app_dir="''${BIFROST_APP_DIR:-''${XDG_STATE_HOME:-$HOME/.local/state}/bifrost-oauth}"
       ${pkgs.coreutils}/bin/mkdir -p "$app_dir/plugins"
-      ${pkgs.coreutils}/bin/ln -sfn \
-        ${plugin}/lib/bifrost/plugins/codex-oauth.so \
-        "$app_dir/plugins/codex-oauth.so"
+      ${reconciler}/bin/bifrost-oauth-reconcile-plugin \
+        "$app_dir" \
+        ${plugin}/lib/bifrost/plugins/codex-oauth.so
       if [[ ! -e "$app_dir/config.json" ]]; then
         ${pkgs.coreutils}/bin/install -m 600 ${configTemplate} "$app_dir/config.json"
       fi
@@ -113,6 +119,7 @@ let
     paths = [
       bifrostHttp
       plugin
+      reconciler
       launcher
     ];
     passthru = {
@@ -121,6 +128,7 @@ let
         bifrostOAuthAbi
         configTemplate
         plugin
+        reconciler
         settings
         ;
     };
@@ -138,6 +146,7 @@ in
     configTemplate
     package
     plugin
+    reconciler
     settings
     ;
   default = package;

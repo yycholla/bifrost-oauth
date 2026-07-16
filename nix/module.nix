@@ -10,6 +10,9 @@
 let
   cfg = config.services.bifrost.oauth;
   system = pkgs.stdenv.hostPlatform.system;
+  plugin = self.packages.${system}.codex-oauth-plugin;
+  pluginPath = "/var/lib/bifrost/plugins/codex-oauth.so";
+  reconciler = self.packages.${system}.bifrost-oauth-reconciler;
 in
 {
   imports = [ bifrost.nixosModules.bifrost ];
@@ -50,17 +53,24 @@ in
       enable = true;
       package = lib.mkDefault self.packages.${system}.bifrost-http;
       environment.CODEX_HOME = cfg.codexHome;
-      settings = import ./settings.nix {
-        pluginPath = "${self.packages.${system}.codex-oauth-plugin}/lib/bifrost/plugins/codex-oauth.so";
-      };
+      settings = import ./settings.nix { inherit pluginPath; };
     };
 
-    systemd.services.bifrost.serviceConfig = {
-      DynamicUser = lib.mkForce false;
-      User = cfg.user;
-      PrivateUsers = lib.mkForce false;
-      ProtectHome = lib.mkForce true;
-      BindPaths = [ cfg.codexHome ];
+    systemd.services.bifrost = {
+      # Bifrost persists plugin paths in config.db. Keep that path stable across
+      # Nix store changes and migrate installations created before v0.1.3.
+      preStart = lib.mkAfter ''
+        ${reconciler}/bin/bifrost-oauth-reconcile-plugin \
+          /var/lib/bifrost \
+          ${plugin}/lib/bifrost/plugins/codex-oauth.so
+      '';
+      serviceConfig = {
+        DynamicUser = lib.mkForce false;
+        User = cfg.user;
+        PrivateUsers = lib.mkForce false;
+        ProtectHome = lib.mkForce true;
+        BindPaths = [ cfg.codexHome ];
+      };
     };
   };
 }
