@@ -13,9 +13,15 @@ build-plugin
 
 The plugin and Bifrost must use the same Go version, Bifrost core revision and module identity, build flags, architecture, and libc. The devenv pins both to Bifrost commit `c0909f9`, builds the plugin against that input's local core source, and includes the dynamically linked `bifrost-http` binary.
 
-The Bifrost dashboard is intentionally replaced with a one-line placeholder to keep this local gateway lightweight.
+The full Bifrost dashboard and backend are included. Build the plugin and start
+the loopback-only instance with:
 
-Run `bifrost-http -app-dir . -host 127.0.0.1`, and start it as your user so the plugin can read `~/.codex/auth.json`. `CODEX_HOME` is honored when set.
+```bash
+devenv up
+```
+
+Run it as your user so the plugin can read `~/.codex/auth.json`. `CODEX_HOME`
+is honored when set.
 
 The ChatGPT Codex backend requires streaming Responses requests. Claude Code uses the streaming path; direct clients must set `stream: true`.
 

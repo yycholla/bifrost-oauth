@@ -1,13 +1,16 @@
 { pkgs, inputs, ... }:
 
 let
-  # ponytail: no dashboard; restore Bifrost's UI package if local admin UI is needed.
-  emptyUi = pkgs.runCommand "bifrost-empty-ui" { } ''
-    mkdir -p $out/ui
-    echo '<!doctype html><title>Bifrost</title>' > $out/ui/index.html
-  '';
-  bifrostBase = inputs.bifrost.packages.${pkgs.system}.bifrost-http.override {
-    bifrost-ui = emptyUi;
+  bifrostUi =
+    inputs.bifrost.packages.${pkgs.stdenv.hostPlatform.system}.bifrost-ui.overrideAttrs
+      (old: {
+        # Upstream's Nix hash lags this pinned source commit.
+        npmDeps = old.npmDeps.overrideAttrs {
+          outputHash = "sha256-AM6Gbdj9mRjeI7mgc+WWiscEA81WRupbhzeAC6JO32c=";
+        };
+      });
+  bifrostBase = inputs.bifrost.packages.${pkgs.stdenv.hostPlatform.system}.bifrost-http.override {
+    bifrost-ui = bifrostUi;
   };
   bifrost = bifrostBase.overrideAttrs {
     # Upstream's Nix hash lags this pinned source commit.
@@ -36,6 +39,8 @@ in
     go build -trimpath -buildmode=plugin -modfile=build/plugin.mod \
       -o build/codex-oauth.so .
   '';
+
+  processes.bifrost.exec = "build-plugin && exec bifrost-http -app-dir . -host 127.0.0.1";
 
   enterTest = ''
     go test ./...

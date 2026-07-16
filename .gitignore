@@ -11,3 +11,7 @@ devenv.local.yaml
 
 # Build output
 /build/
+
+# Bifrost runtime state
+/config.db*
+/logs.db*
