@@ -1,0 +1,41 @@
+# Bifrost Codex subscription OAuth
+
+Native Bifrost plugin that reuses an existing `codex login` to send Responses requests through the ChatGPT Codex subscription backend.
+
+This uses the private `chatgpt.com/backend-api/codex` endpoint. It is not an officially supported general OpenAI API integration and may break when that backend changes.
+
+## Build
+
+```bash
+devenv shell
+build-plugin
+```
+
+The plugin and Bifrost must use the same Go version, Bifrost core revision and module identity, build flags, architecture, and libc. The devenv pins both to Bifrost commit `c0909f9`, builds the plugin against that input's local core source, and includes the dynamically linked `bifrost-http` binary.
+
+The Bifrost dashboard is intentionally replaced with a one-line placeholder to keep this local gateway lightweight.
+
+Run `bifrost-http -app-dir . -host 127.0.0.1`, and start it as your user so the plugin can read `~/.codex/auth.json`. `CODEX_HOME` is honored when set.
+
+The ChatGPT Codex backend requires streaming Responses requests. Claude Code uses the streaming path; direct clients must set `stream: true`.
+
+Point Claude Code at the Anthropic integration:
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8080/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "local-only",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "codex-subscription/gpt-5.4-mini",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "codex-subscription/gpt-5.4"
+  }
+}
+```
+
+The plugin refreshes rotating OAuth credentials and atomically replaces the Codex auth file with mode `0600`. If Codex rotates the token concurrently, the plugin rereads and uses Codex's newly persisted credentials.
+
+## Check
+
+```bash
+devenv test
+```
