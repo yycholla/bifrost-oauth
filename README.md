@@ -9,6 +9,7 @@ This uses the private `chatgpt.com/backend-api/codex` endpoint. It is not an off
 ```bash
 devenv shell
 build-plugin
+devenv build outputs.default
 ```
 
 The plugin and Bifrost must use the same Go version, Bifrost core revision and module identity, build flags, architecture, and libc. The devenv pins both to Bifrost commit `c0909f9`, builds the plugin against that input's local core source, and includes the dynamically linked `bifrost-http` binary.
@@ -22,6 +23,31 @@ devenv up
 
 Run it as your user so the plugin can read `~/.codex/auth.json`. `CODEX_HOME`
 is honored when set.
+
+The same package is exposed as a standard flake output:
+
+```bash
+nix build path:.
+nix run path:.
+```
+
+`bifrost-oauth` stores mutable state under `$XDG_STATE_HOME/bifrost-oauth` (or
+`~/.local/state/bifrost-oauth`).
+Override that location with `BIFROST_APP_DIR`. The default listener remains
+`127.0.0.1:8080`.
+
+For NixOS, import `nixosModules.default` and enable the plugin on top of
+Bifrost's existing module:
+
+```nix
+{
+  imports = [ inputs.bifrost-oauth.nixosModules.default ];
+  services.bifrost.oauth = {
+    enable = true;
+    user = "alice";
+  };
+}
+```
 
 The ChatGPT Codex backend requires streaming Responses requests. Claude Code uses the streaming path; direct clients must set `stream: true`.
 

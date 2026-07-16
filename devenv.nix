@@ -1,33 +1,24 @@
 { pkgs, inputs, ... }:
 
 let
-  bifrostUi =
-    inputs.bifrost.packages.${pkgs.stdenv.hostPlatform.system}.bifrost-ui.overrideAttrs
-      (old: {
-        # Upstream's Nix hash lags this pinned source commit.
-        npmDeps = old.npmDeps.overrideAttrs {
-          outputHash = "sha256-AM6Gbdj9mRjeI7mgc+WWiscEA81WRupbhzeAC6JO32c=";
-        };
-      });
-  bifrostBase = inputs.bifrost.packages.${pkgs.stdenv.hostPlatform.system}.bifrost-http.override {
-    bifrost-ui = bifrostUi;
+  artifacts = pkgs.callPackage ./package.nix {
+    bifrostPackages = inputs.bifrost.packages.${pkgs.stdenv.hostPlatform.system};
   };
-  bifrost = bifrostBase.overrideAttrs {
-    # Upstream's Nix hash lags this pinned source commit.
-    vendorHash = "sha256-IpSKJZ58R7/Ziz/KV9WqV09PoWr9FG1Pzup6UrqmilU=";
-  };
+  inherit (artifacts) bifrostHttp package;
 in
 {
   languages.go = {
     enable = true;
-    package = bifrostBase.go;
+    package = bifrostHttp.go;
   };
 
   packages = [
     pkgs.gcc
-    bifrost
+    bifrostHttp
   ];
   env.CGO_ENABLED = "1";
+
+  outputs.default = package;
 
   scripts.build-plugin.exec = ''
     mkdir -p build
