@@ -1,6 +1,7 @@
 {
   pkgs,
   bifrostPackages,
+  bifrostSource,
 }:
 
 let
@@ -17,10 +18,15 @@ let
     bifrost-ui = bifrostUi;
   };
 
-  bifrostHttp = bifrostBase.overrideAttrs {
+  bifrostOAuthAbi = builtins.hashString "sha256" "${bifrostSource}:${bifrostBase.go}";
+
+  bifrostHttp = bifrostBase.overrideAttrs (previous: {
     # Upstream's Nix hash lags this pinned source commit.
     vendorHash = "sha256-IpSKJZ58R7/Ziz/KV9WqV09PoWr9FG1Pzup6UrqmilU=";
-  };
+    passthru = (previous.passthru or { }) // {
+      inherit bifrostOAuthAbi;
+    };
+  });
 
   pluginSource = lib.fileset.toSource {
     root = ./.;
@@ -34,12 +40,25 @@ let
 
   buildGoModule = pkgs.buildGoModule.override { go = bifrostBase.go; };
 
+  usePinnedCore = ''
+    cp -R ${bifrostSource}/core bifrost-core
+    chmod -R u+w bifrost-core
+    go mod edit \
+      -require=github.com/maximhq/bifrost/core@v1.7.1 \
+      -replace=github.com/maximhq/bifrost/core=./bifrost-core
+  '';
+
   plugin = buildGoModule {
     pname = "bifrost-codex-oauth-plugin";
     version = "0.1.0";
     src = pluginSource;
 
-    vendorHash = "sha256-Q7or1Ur0PDrDrXI8Ngaz0uUp8aQKsq5KQL9lSiSZxqk=";
+    vendorHash = "sha256-dRvYRt6Dq0VNsZtzWITx9y2GAzfx8v3E8u5jeIN2oz8=";
+
+    overrideModAttrs = final: previous: {
+      postPatch = (previous.postPatch or "") + usePinnedCore;
+    };
+    postPatch = usePinnedCore;
 
     env.CGO_ENABLED = "1";
     nativeBuildInputs = [ pkgs.gcc ];
@@ -56,6 +75,8 @@ let
       runHook postInstall
     '';
 
+    passthru = { inherit bifrostOAuthAbi; };
+
     meta = {
       description = "Codex subscription OAuth plugin for Bifrost";
       license = lib.licenses.asl20;
@@ -63,26 +84,8 @@ let
     };
   };
 
-  settings = {
-    "$schema" = "https://www.getbifrost.ai/schema";
-    providers.codex-subscription = {
-      network_config.base_url = "https://chatgpt.com/backend-api/codex";
-      openai_config.disable_store = true;
-      custom_provider_config = {
-        base_provider_type = "openai";
-        is_key_less = true;
-        allowed_requests.responses_stream = true;
-        request_path_overrides.responses_stream = "/responses";
-      };
-    };
-    plugins = [
-      {
-        name = "codex-subscription-oauth";
-        enabled = true;
-        path = "./plugins/codex-oauth.so";
-        config = { };
-      }
-    ];
+  settings = import ./nix/settings.nix {
+    pluginPath = "./plugins/codex-oauth.so";
   };
 
   configTemplate = (pkgs.formats.json { }).generate "bifrost-oauth.json" settings;
@@ -115,6 +118,7 @@ let
     passthru = {
       inherit
         bifrostHttp
+        bifrostOAuthAbi
         configTemplate
         plugin
         settings
@@ -130,6 +134,7 @@ in
 {
   inherit
     bifrostHttp
+    bifrostOAuthAbi
     configTemplate
     package
     plugin

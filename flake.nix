@@ -23,6 +23,7 @@
         system:
         nixpkgs.legacyPackages.${system}.callPackage ./package.nix {
           bifrostPackages = bifrost.packages.${system};
+          bifrostSource = bifrost;
         };
     in
     {

@@ -49,6 +49,12 @@ Bifrost's existing module:
 }
 ```
 
+The module selects this flake's `bifrost-http` output so the Go plugin ABI
+matches. A wrapper around that exact binary must preserve its
+`bifrostOAuthAbi` passthru marker. Overriding `services.bifrost.package` with a
+separately rebuilt Bifrost fails NixOS evaluation instead of leaving a plugin
+that Bifrost will reject at runtime.
+
 The ChatGPT Codex backend requires streaming Responses requests. Claude Code uses the streaming path; direct clients must set `stream: true`.
 
 Point Claude Code at the Anthropic integration:

@@ -3,6 +3,7 @@
 let
   artifacts = pkgs.callPackage ./package.nix {
     bifrostPackages = inputs.bifrost.packages.${pkgs.stdenv.hostPlatform.system};
+    bifrostSource = inputs.bifrost;
   };
   inherit (artifacts) bifrostHttp package;
 in
@@ -31,7 +32,14 @@ in
       -o build/codex-oauth.so .
   '';
 
-  processes.bifrost.exec = "build-plugin && exec bifrost-http -app-dir . -host 127.0.0.1";
+  processes.bifrost.exec = ''
+    build-plugin
+    mkdir -p "$DEVENV_STATE/bifrost"
+    if [[ ! -e "$DEVENV_STATE/bifrost/config.json" ]]; then
+      cp config.json "$DEVENV_STATE/bifrost/config.json"
+    fi
+    exec bifrost-http -app-dir "$DEVENV_STATE/bifrost" -host 127.0.0.1
+  '';
 
   enterTest = ''
     go test ./...
