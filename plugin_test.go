@@ -90,6 +90,49 @@ func TestPreLLMHookRefreshesAndShapesCodexRequest(t *testing.T) {
 	}
 }
 
+func TestPreLLMHookUsesDeveloperRoleForCodexInstructions(t *testing.T) {
+	fixedNow := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
+	oldNow := now
+	now = func() time.Time { return fixedNow }
+	t.Cleanup(func() { now = oldNow })
+
+	codexHome := t.TempDir()
+	t.Setenv("CODEX_HOME", codexHome)
+	writeTestAuth(t, codexHome, tokenSet{
+		AccessToken: testJWT(fixedNow.Add(time.Hour), "account-1"),
+		AccountID:   "account-1",
+	})
+
+	request := &schemas.BifrostRequest{
+		RequestType: schemas.ResponsesStreamRequest,
+		ResponsesRequest: &schemas.BifrostResponsesRequest{
+			Provider: providerName,
+			Model:    "gpt-5.6-sol",
+			Input: []schemas.ResponsesMessage{
+				{Role: schemas.Ptr(schemas.ResponsesInputMessageRoleSystem)},
+				{Role: schemas.Ptr(schemas.ResponsesInputMessageRoleUser)},
+				{Role: schemas.Ptr(schemas.ResponsesInputMessageRoleSystem)},
+			},
+		},
+	}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	got, shortCircuit, err := PreLLMHook(ctx, request)
+	if err != nil || shortCircuit != nil {
+		t.Fatalf("PreLLMHook() error = %v, shortCircuit = %#v", err, shortCircuit)
+	}
+
+	want := []schemas.ResponsesMessageRoleType{
+		schemas.ResponsesInputMessageRoleDeveloper,
+		schemas.ResponsesInputMessageRoleUser,
+		schemas.ResponsesInputMessageRoleDeveloper,
+	}
+	for i, message := range got.ResponsesRequest.Input {
+		if message.Role == nil || *message.Role != want[i] {
+			t.Fatalf("input[%d].role = %v, want %q", i, message.Role, want[i])
+		}
+	}
+}
+
 func TestCredentialsUsesConcurrentCodexRefresh(t *testing.T) {
 	fixedNow := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	oldNow, oldURL, oldClient := now, oauthURL, httpClient

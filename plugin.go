@@ -86,6 +86,11 @@ func PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*sche
 	if req.ResponsesRequest.Params != nil {
 		req.ResponsesRequest.Params.MaxOutputTokens = nil
 	}
+	for i := range req.ResponsesRequest.Input {
+		if role := req.ResponsesRequest.Input[i].Role; role != nil && *role == schemas.ResponsesInputMessageRoleSystem {
+			req.ResponsesRequest.Input[i].Role = schemas.Ptr(schemas.ResponsesInputMessageRoleDeveloper)
+		}
+	}
 	return req, nil, nil
 }
 
